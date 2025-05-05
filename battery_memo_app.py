@@ -4,15 +4,36 @@ import json
 import os
 import matplotlib
 matplotlib.rcParams['font.family'] = 'Meiryo'  # WindowsならMeiryoが安定
-
 import matplotlib.pyplot as plt
 import pandas as pd
 
 st.set_page_config(page_title="バッテリーメモ", layout="centered")
+
 st.title("🔋 今日のバッテリーを記録しよう")
 
+# ユーザー識別（本名は禁止、ID的な長さを求める）
+st.subheader("🆔 ユーザー識別")
+username = st.text_input("ニックネーム（本名NG・8文字以上推奨）", max_chars=30)
+
+if not username or len(username.strip()) < 8:
+    st.warning("ニックネームは8文字以上で、本名を使わないでください。")
+    st.stop()
+
+# 個別ファイルの準備
+DATA_DIR = "user_data"
+os.makedirs(DATA_DIR, exist_ok=True)
+DATA_FILE = os.path.join(DATA_DIR, f"{username}_battery_log.json")
+
+# JSON初期化
+if not os.path.exists(DATA_FILE):
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump({}, f, ensure_ascii=False, indent=2)
+
 # ファイルの準備
-DATA_FILE = "battery_log_clean.json"
+DATA_DIR = "user_data"
+os.makedirs(DATA_DIR, exist_ok=True)
+DATA_FILE = os.path.join(DATA_DIR, f"{username}_battery_log.json")
+
 
 # ファイルの準備（初回のみ空の辞書を保存）
 if not os.path.exists(DATA_FILE):
