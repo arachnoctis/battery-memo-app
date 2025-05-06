@@ -24,15 +24,6 @@ DATA_DIR = "user_data"
 os.makedirs(DATA_DIR, exist_ok=True)
 DATA_FILE = os.path.join(DATA_DIR, f"{username}_battery_log.json")
 
-# JSON初期化
-if not os.path.exists(DATA_FILE):
-    with open(DATA_FILE, "w", encoding="utf-8") as f:
-        json.dump({}, f, ensure_ascii=False, indent=2)
-
-# ファイルの準備
-DATA_DIR = "user_data"
-os.makedirs(DATA_DIR, exist_ok=True)
-DATA_FILE = os.path.join(DATA_DIR, f"{username}_battery_log.json")
 
 
 # ファイルの準備（初回のみ空の辞書を保存）
@@ -51,7 +42,6 @@ today = str(datetime.date.today())
 battery = st.slider("今日の体力（0〜100）", 0, 100, 50)
 note = st.text_area("メモ（自由記入）", "")
 
-# 保存ボタン
 # ✅ 正しい保存方法
 if st.button("保存"):
     data[today] = {"battery": battery, "note": note}
@@ -152,28 +142,30 @@ if data:
             st.success(f"{delete_date} の記録を削除しました。")
 else:
     st.info("削除できる記録が存在しません。")
+# データをDataFrame化（空チェックを追加）
+if not data:
+    st.info("記録がまだ存在しません。記録を追加するとグラフと統計が表示されます。")
+else:
+    df = pd.DataFrame([
+        {"date": d, "battery": data[d]["battery"]}
+        for d in data
+    ])
+    df["date"] = pd.to_datetime(df["date"])
+    df["week"] = df["date"].dt.to_period("W").astype(str)
+    df["month"] = df["date"].dt.strftime("%Y年%m月")
 
-# データをDataFrame化
-df = pd.DataFrame([
-    {"date": d, "battery": data[d]["battery"]}
-    for d in data
-])
-df["date"] = pd.to_datetime(df["date"])
-df["week"] = df["date"].dt.to_period("W").astype(str)  # 例: '2025-04-28/2025-05-04'
-df["month"] = df["date"].dt.strftime("%Y年%m月")  # 年+月
+    # グループごとに平均
+    weekly_avg = df.groupby("week")["battery"].mean().reset_index()
+    monthly_avg = df.groupby("month")["battery"].mean().reset_index()
 
-# グループごとに平均
-weekly_avg = df.groupby("week")["battery"].mean().reset_index()
-monthly_avg = df.groupby("month")["battery"].mean().reset_index()
+    # 表示
+    st.subheader("📅 週ごとの平均体力")
+    st.dataframe(weekly_avg)
+    st.bar_chart(weekly_avg.set_index("week"))
 
-# 表示
-st.subheader("📅 週ごとの平均体力")
-st.dataframe(weekly_avg)
-st.bar_chart(weekly_avg.set_index("week"))
-
-st.subheader("🗓 月ごとの平均体力")
-st.dataframe(monthly_avg)
-st.bar_chart(monthly_avg.set_index("month"))
+    st.subheader("🗓 月ごとの平均体力")
+    st.dataframe(monthly_avg)
+    st.bar_chart(monthly_avg.set_index("month"))
 
 
 
